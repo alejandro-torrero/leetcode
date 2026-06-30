@@ -1,0 +1,233 @@
+package main
+
+import "fmt"
+
+type TreeNode struct {
+	Val   int
+	Left  *TreeNode
+	Right *TreeNode
+}
+
+var notFoundNodes []*TreeNode
+
+func treeSearch(searchValue int, node *TreeNode) *TreeNode {
+
+	if node == nil {
+		return nil
+	}
+
+	if node.Val == searchValue {
+		return node
+	}
+
+	if result := treeSearch(searchValue, node.Left); result != nil {
+		return result
+	}
+
+	if result := treeSearch(searchValue, node.Right); result != nil {
+		return result
+	}
+
+	return nil
+}
+
+func printTree(root *TreeNode) []int {
+	if root == nil {
+		return []int{}
+	}
+
+	result := []int{}
+	queue := []*TreeNode{root}
+
+	for len(queue) > 0 {
+		node := queue[0]
+		queue = queue[1:]
+
+		result = append(result, node.Val)
+
+		if node.Left != nil {
+			queue = append(queue, node.Left)
+		}
+
+		if node.Right != nil {
+			queue = append(queue, node.Right)
+		}
+	}
+
+	return result
+}
+
+func searchOnNotFound(searchValue int) (*TreeNode, int) {
+	var found *TreeNode = nil
+	var foundIn = -1
+
+	for index, node := range notFoundNodes {
+		result := treeSearch(searchValue, node)
+		if result != nil {
+			found = result
+			foundIn = index
+			break
+		}
+	}
+	return found, foundIn
+}
+
+func createBinaryTree(descriptions [][]int) *TreeNode {
+	var rootTree *TreeNode = nil
+
+	for _, value := range descriptions {
+
+		// -------------------------- Prepare data --------------------------
+		fmt.Println("Processing", value)
+		parentValue := value[0]
+
+		childValue := value[1]
+
+		nodeIsLeft := value[2] == 1
+
+		var nodeChild *TreeNode = nil
+		var nodeParent *TreeNode = nil
+
+		var createdChild = false
+		var createdParent = false
+
+		parentFoundIn := -1
+		childFoundIn := -1
+
+		parentInRoot := false
+		childInRoot := false
+
+		// -------------------------- Search for nodes --------------------------
+
+		if nodeChild = treeSearch(childValue, rootTree); nodeChild == nil {
+			// NodeChild doesnt exists on the current tree
+			if nodeChild, childFoundIn = searchOnNotFound(childValue); nodeChild == nil {
+				// nodechild doesnt exists ont not found, create
+				nodeChild = &TreeNode{
+					Val:   childValue,
+					Left:  nil,
+					Right: nil,
+				}
+				createdChild = true
+				fmt.Println("Created new child node", nodeChild)
+			}
+		} else {
+			// Child belongs to the root tree
+			childInRoot = true
+		}
+
+		if nodeParent = treeSearch(parentValue, rootTree); nodeParent == nil {
+			// Node parent doesnt exists on root tree
+			if nodeParent, parentFoundIn = searchOnNotFound(parentValue); nodeParent == nil {
+				// Node parent doesnt exists on not found, create
+				nodeParent = &TreeNode{
+					Val:   parentValue,
+					Left:  nil,
+					Right: nil,
+				}
+				createdParent = true
+				fmt.Println("Created new parent node", nodeParent)
+			}
+		} else {
+			// Parent belongs to the root tree
+			parentInRoot = true
+		}
+
+		// -------------------------- Link nodes --------------------------
+
+		// At this moment, we have already created both parent and child nodes
+		// Link them
+
+		if nodeIsLeft {
+			nodeParent.Left = nodeChild
+		} else {
+			nodeParent.Right = nodeChild
+		}
+
+		fmt.Println("Linked parent to child", nodeParent)
+
+		// -------------------------- Insert into not found nodes --------------------------
+
+		if createdChild && createdParent && rootTree != nil {
+
+			notFoundNodes = append(notFoundNodes, nodeParent)
+			fmt.Println("Inserting node into not found", nodeParent)
+
+		} else if createdParent && !createdChild && !childInRoot {
+			// Created parent and child is on the not found array
+			// Remove the child and add the parent that already has the child linked
+			notFoundNodes[childFoundIn] = nil
+			notFoundNodes = append(notFoundNodes, nodeParent)
+			fmt.Println("Inserting node into not found with removing child", nodeParent)
+		}
+
+		// -------------------------- Redefined root tree --------------------------
+
+		if rootTree == nil {
+			rootTree = nodeParent
+			fmt.Println("Defined new rootTree to", rootTree)
+		} else if nodeChild.Val == rootTree.Val {
+			// We linked root tree ot a new child that has a parent
+			// That nodeParent might have a parent
+			var newRootTree *TreeNode = nil
+
+			if parentFoundIn >= 0 {
+				newRootTree = notFoundNodes[parentFoundIn]
+			}
+
+			if newRootTree != nil && newRootTree.Val != nodeParent.Val {
+				rootTree = newRootTree
+				fmt.Println("Defined new rootTree to", rootTree)
+			} else {
+				rootTree = nodeParent
+				fmt.Println("Defined new rootTree to", rootTree)
+			}
+		}
+
+		// -------------------------- Clean not found array --------------------------
+
+		if parentFoundIn >= 0 && childFoundIn >= 0 {
+			// Both, the parent and child ndoe are from the not found list
+			// Clean child as its already linked to the parent
+			notFoundNodes[childFoundIn] = nil
+			fmt.Println("Both nodes are from not found, removing child", nodeChild)
+			fmt.Println()
+			continue
+		}
+
+		if parentFoundIn >= 0 && childInRoot {
+			// Parent comes from the not found array
+			// But child is from root
+			// Parent is now linked to the main root, clean parent
+			notFoundNodes[parentFoundIn] = nil
+			fmt.Println("Cleaning not found nodes", parentFoundIn, childFoundIn)
+		}
+
+		if childFoundIn >= 0 && parentInRoot {
+			// Child comes from the not found list
+			// parent belongs to the root tree
+			// as child is already linked to the parent, clean child
+			notFoundNodes[childFoundIn] = nil
+			fmt.Println("Cleaning not found nodes", parentFoundIn, childFoundIn)
+		}
+
+		fmt.Println()
+
+	} // For cycle
+
+	return rootTree
+}
+
+func main() {
+
+	// array := [][]int{{85, 82, 1}, {74, 85, 1}, {39, 70, 0}, {82, 38, 1}, {74, 39, 0}, {39, 13, 1}}
+	// array := [][]int{{39, 70, 1}, {13, 39, 1}, {85, 74, 1}, {74, 13, 1}, {38, 82, 1}, {82, 85, 1}}
+	// array := [][]int{{39, 70, 1}, {13, 39, 1}, {85, 74, 1}, {74, 13, 1}, {38, 82, 1}, {82, 85, 1}}
+	//array := [][]int{{8, 25, 1}, {60, 61, 1}, {90, 1, 1}, {4, 3, 1}, {100, 22, 0}, {8, 4, 0}, {1, 100, 1}, {60, 65, 0}, {22, 60, 1}, {100, 8, 1}, {52, 90, 1}, {65, 28, 0}}
+	array := [][]int{{3, 4, 1}, {1, 90, 1}, {100, 61, 1}, {22, 1, 1}, {90, 52, 1}, {28, 22, 1}, {25, 8, 1}, {60, 65, 1}, {65, 28, 1}, {61, 60, 1}, {8, 3, 1}, {4, 100, 1}}
+
+	createBinaryTree(array)
+	// output := printTree(tree)
+	// fmt.Println(output)
+
+}
