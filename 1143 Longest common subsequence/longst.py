@@ -1,6 +1,9 @@
 def lcsFn(s1,s2,i=0,j=0,lookup=None):
     lookup = {} if lookup is None else lookup
     
+    if (i,j) in lookup:
+        return lookup[(i,j)]
+    
     if i>= len(s1) or j>= len(s2):
         return 0
     
