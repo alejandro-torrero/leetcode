@@ -4,8 +4,7 @@ class Solution(object):
 
     def take(self, nums, i, j, turn, p1, p2, lookup = None):
         lookup = {} if lookup is None else lookup
-        
-        if ()
+                
         # print("p1: ", p1, " p2: ", p2)
         if i == j:
             # print("Final", i, j)
