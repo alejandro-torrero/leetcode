@@ -6,9 +6,7 @@ class Solution:
         for num in str(n):
             digitSum += int(num)
             digitProd *= int(num)
-            
-        print(digitProd,type(digitProd))
-        print(digitSum,type(digitSum))
+                    
         return n%(digitSum + digitProd)==0
     
     
