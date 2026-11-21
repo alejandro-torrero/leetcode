@@ -1,53 +1,85 @@
+
+class Node:
+    def __init__(self,key,value):
+        self.val = value
+        self.key = key
+        self.prev = None
+        self.next = None
+
 class LRUCache:
 
     def __init__(self, capacity: int):
         self.capacity = capacity
-        # Dictionary to handle the key value pairs
         self.memory = {}
-        self.lru = []
+        
+        # To avoid handling None values, both tail and head ar dummy nodes
+        self.head = Node(0,0)
+        self.tail = Node(0,0)
+        
+        # Linked them so that there arent null pointers
+        self.head.prev= self.tail
+        self.tail.next = self.head
+                
+    def insert(self,node:Node):        
+        # Insert a new node at the end of the LRU DLL
+        prev = self.head.prev
+        
+        prev.next = node
+        node.next = self.head
+        node.prev = prev
+        self.head.prev = node        
+                
+        
+    def remove(self, node:Node):
+        prev,next = node.prev,node.next
+        
+        prev.next = next
+        next.prev = prev
 
     def get(self, key: int) -> int:
         if key in self.memory:
-            idxOfKey = self.lru.index(key)
-            self.lru.pop(idxOfKey)
-            self.lru.append(key) ## Append at the end
-            return self.memory[key]
+            # Update LRU
+            node = self.memory[key]            
+            self.remove(node)
+            self.insert(node)
+            return node.val
         else:
             return -1
-        
 
     def put(self, key: int, value: int) -> None:
+        # Validate if that key already exists
         
         if key in self.memory:
-            # Replace content
-            self.memory[key] = value
-            idxOfKey = self.lru.index(key)
-            self.lru.pop(idxOfKey)
-            self.lru.append(key) ## Append at the end
-                
-        elif len(self.memory) == self.capacity:            
-            # Memory at full capacity, this insert will remove data            
-            # Remove data            
-            # Determina which key
-            keyToRemove = self.lru[0]                   
-            del self.memory[keyToRemove]            
-            # Remove element form lru
-            self.lru.pop(0)
+            # Key already exists
             
-            # Insert new data
-            self.memory[key] = value
-            self.lru.append(key)                        
+            # Update its value
+            node = self.memory[key]
+            node.val = value            
+            # Update LRU
+            self.remove(node)
+            self.insert(node)            
+            return
+        
+        if len(self.memory) == self.capacity:
+            # Remove tail from LRU and memory and insert new record
+            nodeToRemove = self.tail.next            
+            self.remove(nodeToRemove)
+            del self.memory[nodeToRemove.key]
+            
+            node = Node(key,value)
+            self.insert(node)
+            self.memory[key] = node
         else:
-            self.memory[key] = value
-            self.lru.append(key)
+            # within capacity, add new node            
+            node = Node(key,value)
+            self.memory[key] = node
+            
+            # Insert node on LRU
+            self.insert(node)
+        
 
 
-# Your LRUCache object will be instantiated and called as such:
-# obj = LRUCache(capacity)
-# param_1 = obj.get(key)
-# obj.put(key,value)
-
-lRUCache =LRUCache(2);
+lRUCache = LRUCache(2);
 print(lRUCache.put(1, 1)); # cache is {1=1}
 print(lRUCache.put(2, 2)); # cache is {1=1, 2=2}
 print(lRUCache.get(1));    # return 1
